@@ -1,4 +1,4 @@
-SOURCES=$(wildcard *.cpp)
+SOURCES=$(wildcard *.cpp) ../third_party/json11/json11.cpp
 
 CXX=c++
 LD=c++
