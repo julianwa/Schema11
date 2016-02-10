@@ -1,4 +1,4 @@
-SOURCES=$(wildcard *.cpp) ../third_party/json11/json11.cpp
+SOURCES=$(wildcard *.cpp) ../schema11.cpp ../third_party/json11/json11.cpp
 
 CXX=c++
 LD=c++
@@ -22,11 +22,11 @@ preprocess: $(TRANSLATIONUNITS)
 $(PROGRAM) : $(OBJECTS)
 	$(LD) $(LIBS) -o $(PROGRAM) $(OBJECTS)
 
-%.o: %.cpp %.h
+%.o: %.cpp %.h %.hpp
 
-%.mi: %.cpp %.h
+%.mi: %.cpp %.h %.hpp
 
-%.S: %.cpp %.h
+%.S: %.cpp %.h %.hpp
 
 clean:
 	rm -f $(OBJECTS) $(PROGRAM) $(TRANSLATIONUNITS) $(ASMFILES)
@@ -37,7 +37,7 @@ clean:
 #		| sed 's/\($*\)\.o[ :]*/\1.o $@ : /g' > $@; \
 #		[ -s $@ ] || rm -f $@
 #
-.SUFFIXES:  .o .cpp .mi .S
+.SUFFIXES: .o .cpp .mi .S
 .cpp.o:
 	$(CXX) -c $(IFLAGS) $(CFLAGS) -o $@ $<
 
