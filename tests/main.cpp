@@ -29,7 +29,7 @@ TEST_CASE("can create an empty schema")
     Schema schema;
 }
 
-TEST_CASE("can create a simple schema")
+TEST_CASE("can create a flat schema")
 {
     Schema schema = Schema::object {
         { "nullProp", Schema(nullptr) },
@@ -43,4 +43,22 @@ TEST_CASE("can create a simple schema")
     REQUIRE(schema["intProp"].is_number());
     REQUIRE(schema["boolProp"].is_bool());
     REQUIRE(schema["stringProp"].is_string());
+}
+
+TEST_CASE("can create a nested schema")
+{
+    Schema subSchema = Schema::object {
+        { "nestedIntProp", Schema(Schema::Type::NUMBER) },
+        { "nestedBoolProp", Schema(Schema::Type::BOOL) }
+    };
+    
+    Schema schema = Schema::object {
+        { "intProp", Schema(Schema::Type::NUMBER) },
+        { "nestedProps", subSchema }
+    };
+    REQUIRE(schema.is_object());
+    REQUIRE(schema["intProp"].is_number());
+    REQUIRE(schema["nestedProps"].is_object());
+    REQUIRE(schema["nestedProps"]["nestedIntProp"].is_number());
+    REQUIRE(schema["nestedProps"]["nestedBoolProp"].is_bool());
 }
