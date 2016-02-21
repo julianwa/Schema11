@@ -62,3 +62,62 @@ TEST_CASE("can create a nested schema")
     REQUIRE(schema["nestedProps"]["nestedIntProp"].is_number());
     REQUIRE(schema["nestedProps"]["nestedBoolProp"].is_bool());
 }
+
+TEST_CASE("testing value converter")
+{
+	{
+		int intValue;
+		ValueConverter converter = PrimitiveConverter(intValue);
+		converter.FromJson(Json(5));
+		REQUIRE(intValue == 5);
+	}
+	{
+		int intValue = 6;
+		Json json;
+		PrimitiveConverter(intValue).ToJson(json);
+		REQUIRE(json.int_value() == 6);
+	}
+	{
+		bool boolValue = false;
+		ValueConverter converter = PrimitiveConverter(boolValue);
+		converter.FromJson(Json(true));
+		REQUIRE(boolValue == true);
+	}
+	{
+		string stringValue;
+		ValueConverter converter = PrimitiveConverter(stringValue);
+		converter.FromJson(Json("string"));
+		REQUIRE(stringValue == "string");
+	}
+}
+
+TEST_CASE("can process simple schema")
+{
+	struct Nested
+	{
+		int stringProp;
+	};
+	struct Simple
+	{
+		int intProp;
+		bool boolProp;
+		Nested nestedProp;
+	};
+	
+	Simple simple;
+	
+    Schema subSchema = Schema::object {
+        { "nestedBoolProp", Schema(Schema::Type::STRING) /*, PrimitiveConverter(&simple.nestedProp.stringProp)*/ }
+    };
+	
+	Schema schema = Schema::object {
+		{ "intProp", Schema(Schema::Type::NUMBER)/*, PrimitiveConverter(&simple.intProp) */ },
+		{ "boolProp", Schema(Schema::Type::BOOL)/*, PrimitiveConverter(&simple.boolProp) */ },
+		{ "nestedProp", subSchema}
+	};
+	
+	string err;
+	auto json = Json::parse("{ \"intProp\": 5 }", err);
+	REQUIRE(err.empty());
+	REQUIRE(json["intProp"] == 5);
+}

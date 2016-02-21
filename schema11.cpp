@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <limits>
+#include "third_party/json11/json11.hpp"
 
 namespace schema11 {
 
@@ -36,6 +37,7 @@ using std::map;
 using std::make_shared;
 using std::initializer_list;
 using std::move;
+using json11::Json;
 
 // /* * * * * * * * * * * * * * * * * * * *
 //  * Serialization
@@ -763,5 +765,38 @@ bool Schema::operator< (const Schema &other) const {
 //
 //     return true;
 // }
+
+template <typename T>
+ValueConverter PrimitiveConverter(T & value, std::function<T(const json11::Json &)> fromJson)
+{
+	return ValueConverter {
+		.FromJson = [&value, fromJson](const Json & json) {
+			value = fromJson(json);
+		},
+		.ToJson = [&value](Json &json) {
+			json = Json(value);
+		}
+	};
+}
+ValueConverter PrimitiveConverter(int & value)
+{
+	return PrimitiveConverter<int>(value, &json11::Json::int_value);
+}
+ValueConverter PrimitiveConverter(bool & value)
+{
+	return PrimitiveConverter<bool>(value, &json11::Json::bool_value);
+}
+ValueConverter PrimitiveConverter(float & value)
+{
+	return PrimitiveConverter<float>(value, &json11::Json::number_value);
+}
+ValueConverter PrimitiveConverter(double & value)
+{
+	return PrimitiveConverter<double>(value, &json11::Json::number_value);
+}
+ValueConverter PrimitiveConverter(string & value)
+{
+	return PrimitiveConverter<std::string>(value, &json11::Json::string_value);
+}
 
 } // namespace schema11

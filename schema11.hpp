@@ -1,10 +1,15 @@
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
 #include <map>
 #include <memory>
 #include <initializer_list>
+
+namespace json11 {
+	class Json;
+}
 
 namespace schema11 {
     
@@ -148,4 +153,16 @@ protected:
     virtual const Schema &operator[](const std::string &key) const;
     virtual ~SchemaValue() {}
 };
+
+struct ValueConverter
+{
+	std::function<void(const json11::Json &)> FromJson;
+	std::function<void(json11::Json &)> ToJson;
+};
+ValueConverter PrimitiveConverter(int & value);
+ValueConverter PrimitiveConverter(bool & value);
+ValueConverter PrimitiveConverter(float & value);
+ValueConverter PrimitiveConverter(double & value);
+ValueConverter PrimitiveConverter(std::string & value);
+
 }
