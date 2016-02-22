@@ -249,6 +249,8 @@ Schema::Schema(Schema::Type type) {
             assert(0);
     }
 }
+Schema::Schema(Schema::Type type, ValueConverter converter) : Schema(type) {
+}
 // Schema::Schema(const Schema::array &values)  : m_ptr(make_shared<SchemaArray>(values)) {}
 // Schema::Schema(Schema::array &&values)       : m_ptr(make_shared<SchemaArray>(move(values))) {}
 Schema::Schema(const Schema::object &values) : m_ptr(make_shared<SchemaObject>(values)) {}

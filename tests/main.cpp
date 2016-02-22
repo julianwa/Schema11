@@ -51,7 +51,7 @@ TEST_CASE("can create a nested schema")
         { "nestedIntProp", Schema(Schema::Type::NUMBER) },
         { "nestedBoolProp", Schema(Schema::Type::BOOL) }
     };
-    
+
     Schema schema = Schema::object {
         { "intProp", Schema(Schema::Type::NUMBER) },
         { "nestedProps", subSchema }
@@ -91,33 +91,41 @@ TEST_CASE("testing value converter")
 	}
 }
 
-TEST_CASE("can process simple schema")
+struct Nested
 {
-	struct Nested
-	{
-		int stringProp;
+	string stringProp;
+};
+struct TopLevel
+{
+	int intProp;
+	bool boolProp;
+	Nested nestedProp;
+};
+
+Schema NestedSchema(Nested & nested)
+{
+	return Schema::object {
+	    { "nestedStringProp", Schema(Schema::Type::STRING, PrimitiveConverter(nested.stringProp)) }
 	};
-	struct Simple
-	{
-		int intProp;
-		bool boolProp;
-		Nested nestedProp;
+}
+
+Schema TopLevelSchema(TopLevel & topLevel)
+{
+	return Schema::object {
+		{ "intProp", Schema(Schema::Type::NUMBER, PrimitiveConverter(topLevel.intProp)) },
+		{ "boolProp", Schema(Schema::Type::BOOL, PrimitiveConverter(topLevel.boolProp)) },
+		{ "nestedProp", NestedSchema(topLevel.nestedProp) }
 	};
-	
-	Simple simple;
-	
-    Schema subSchema = Schema::object {
-        { "nestedBoolProp", Schema(Schema::Type::STRING) /*, PrimitiveConverter(&simple.nestedProp.stringProp)*/ }
-    };
-	
-	Schema schema = Schema::object {
-		{ "intProp", Schema(Schema::Type::NUMBER)/*, PrimitiveConverter(&simple.intProp) */ },
-		{ "boolProp", Schema(Schema::Type::BOOL)/*, PrimitiveConverter(&simple.boolProp) */ },
-		{ "nestedProp", subSchema}
+}
+
+TEST_CASE("can process simple schema")
+{	
+	Json json = Json::object {
+	    { "intProp", 5 },
+	    { "boolProp", true },
+	    { "nestedProp", Json::object {{ "nestedStringProp", "str" }}}
 	};
-	
-	string err;
-	auto json = Json::parse("{ \"intProp\": 5 }", err);
-	REQUIRE(err.empty());
-	REQUIRE(json["intProp"] == 5);
+
+	// TopLevel topLevel;
+	// TopLevelSchema(topLevel).from_json(json);
 }

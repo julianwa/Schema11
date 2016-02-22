@@ -15,6 +15,12 @@ namespace schema11 {
     
 class SchemaValue;
 
+struct ValueConverter
+{
+	std::function<void(const json11::Json &)> FromJson;
+	std::function<void(json11::Json &)> ToJson;
+};
+
 class Schema final {
 public:
     // Types
@@ -29,7 +35,8 @@ public:
     // Constructors for the various types of JSON value.
     Schema() noexcept;                // NUL
     Schema(std::nullptr_t) noexcept;  // NUL
-    Schema(Type type);
+	Schema(Type type);
+    Schema(Type type, ValueConverter valueConverter);
     // Schema(const array &values);      // ARRAY
     // Schema(array &&values);           // ARRAY
     Schema(const object &values);     // OBJECT
@@ -154,15 +161,23 @@ protected:
     virtual ~SchemaValue() {}
 };
 
-struct ValueConverter
-{
-	std::function<void(const json11::Json &)> FromJson;
-	std::function<void(json11::Json &)> ToJson;
-};
 ValueConverter PrimitiveConverter(int & value);
 ValueConverter PrimitiveConverter(bool & value);
 ValueConverter PrimitiveConverter(float & value);
 ValueConverter PrimitiveConverter(double & value);
 ValueConverter PrimitiveConverter(std::string & value);
+
+template <typename T>
+ValueConverter ObjectConverter(T & value, std::function<Schema(T &)> schema)
+{
+	return ValueConverter {
+		.FromJson = [&value, schema](const json11::Json & json) {
+
+		},
+		.ToJson = [&value, schema](json11::Json & json) {
+
+		}
+	};
+}
 
 }
