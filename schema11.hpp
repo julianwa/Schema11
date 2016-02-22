@@ -21,7 +21,7 @@ struct ValueConverter
 	std::function<void(json11::Json &)> to_json = [](json11::Json &){};
 };
 
-class Schema final {
+class Schema {
 public:
     // Types
     enum Type {
