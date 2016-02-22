@@ -107,12 +107,12 @@ static void dump(const string &value, string &out) {
 static void dump(const Schema::array &values, string &out) {
     bool first = true;
     out += "[";
-    for (const auto &value : values) {
-        if (!first)
-            out += ", ";
-        value.dump(out);
-        first = false;
-    }
+    // for (const auto &value : values) {
+    //     if (!first)
+    //         out += ", ";
+    //     value.dump(out);
+    //     first = false;
+    // }
     out += "]";
 }
 
@@ -187,14 +187,25 @@ class SchemaString final : public Value<Schema::STRING> {
 public:
     explicit SchemaString(ValueConverter valueConverter) : Value(valueConverter) {}
 };
-//
-// class SchemaArray final : public Value<Schema::ARRAY> {
-//     const Schema::array &array_items() const override { return m_value; }
-//     const Schema & operator[](size_t i) const override;
-// public:
-//     explicit SchemaArray(const Schema::array &value) : Value(value) {}
-//     explicit SchemaArray(Schema::array &&value)      : Value(move(value)) {}
-// };
+
+class SchemaArray final : public Value<Schema::ARRAY> {
+public:
+    explicit SchemaArray(const Schema::array &value) : Value(ValueConverter()), m_value(value) {}
+    
+	void from_json(const Json &json) const override {
+        for (const auto & itemJson : json.array_items()) {
+            auto schema = m_value.first();
+            schema.from_json(itemJson);
+            // TODO: Assume the schema conversion succeeds and do the insertion
+            m_value.second();
+        }
+	}
+	
+	void to_json(Json &json) const override {
+	}
+    
+    Schema::array m_value;
+};
 
 class SchemaObject final : public Value<Schema::OBJECT> {
     const Schema::object &object_items() const override { return m_value; }
@@ -268,10 +279,8 @@ Schema::Schema(Schema::Type type, ValueConverter valueConverter) {
             assert(0);
     }
 }
-// Schema::Schema(Schema::Type type, ValueConverter converter) : Schema(type) {
-// }
-// Schema::Schema(const Schema::array &values)  : m_ptr(make_shared<SchemaArray>(values)) {}
-// Schema::Schema(Schema::array &&values)       : m_ptr(make_shared<SchemaArray>(move(values))) {}
+Schema::Schema(const Schema::array &desc)  : m_ptr(make_shared<SchemaArray>(desc)) {}
+// Schema::Schema(Schema::array &&desc)       : m_ptr(make_shared<SchemaArray>(move(desc))) {}
 Schema::Schema(const Schema::object &values) : m_ptr(make_shared<SchemaObject>(values)) {}
 Schema::Schema(Schema::object &&values)      : m_ptr(make_shared<SchemaObject>(move(values))) {}
 

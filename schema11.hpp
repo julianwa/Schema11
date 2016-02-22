@@ -29,14 +29,14 @@ public:
     };
 
     // Array and object typedefs
-    typedef std::vector<Schema> array; 
+    typedef std::pair<std::function<Schema()>, std::function<void()>> array; 
     typedef std::map<std::string, Schema> object;
 
     // Constructors for the various types of JSON value.
     Schema() noexcept;                // NUL
     Schema(std::nullptr_t) noexcept;  // NUL
     Schema(Type type, ValueConverter valueConverter=ValueConverter());
-    // Schema(const array &values);      // ARRAY
+    Schema(const array &values);      // ARRAY
     // Schema(array &&values);           // ARRAY
     Schema(const object &values);     // OBJECT
     Schema(object &&values);          // OBJECT
@@ -53,10 +53,10 @@ public:
     Schema(const M & m) : Schema(object(m.begin(), m.end())) {}
 
     // Implicit constructor: vector-like objects (std::list, std::vector, std::set, etc)
-    template <class V, typename std::enable_if<
-        std::is_constructible<Schema, typename V::value_type>::value,
-            int>::type = 0>
-    Schema(const V & v) : Schema(array(v.begin(), v.end())) {}
+    // template <class V, typename std::enable_if<
+    //     std::is_constructible<Schema, typename V::value_type>::value,
+    //         int>::type = 0>
+    // Schema(const V & v) : Schema(array(v.begin(), v.end())) {}
 
     // This prevents Schema(some_pointer) from accidentally producing a bool. Use
     // Schema(bool(some_pointer)) if that behavior is desired.
@@ -146,18 +146,14 @@ private:
 class SchemaValue {
 protected:
     friend class Schema;
-    // friend class SchemaInt;
-    // friend class SchemaDouble;
     virtual Schema::Type type() const = 0;
     virtual bool equals(const SchemaValue * other) const = 0;
     virtual bool less(const SchemaValue * other) const = 0;
 	virtual void from_json(const json11::Json &json) const = 0;
 	virtual void to_json(json11::Json &json) const = 0;
     virtual void dump(std::string &out) const = 0;
-    // virtual double number_value() const;
-    // virtual int int_value() const;
-    // virtual bool bool_value() const;
-    // virtual const std::string &string_value() const;
+
+
     // virtual const Schema::array &array_items() const;
     virtual const Schema &operator[](size_t i) const;
     virtual const Schema::object &object_items() const;
@@ -171,17 +167,18 @@ ValueConverter PrimitiveConverter(float & value);
 ValueConverter PrimitiveConverter(double & value);
 ValueConverter PrimitiveConverter(std::string & value);
 
-template <typename T>
-ValueConverter ObjectConverter(T & value, std::function<Schema(T &)> schema)
+template <class T>
+Schema::array ArraySchema(std::vector<T> & array, std::function<Schema(T &)> schema)
 {
-	return ValueConverter {
-		.from_json = [&value, schema](const json11::Json & json) {
-			
-		},
-		.to_json = [&value, schema](json11::Json & json) {
-
-		}
-	};
+    auto v = std::make_shared<T>();
+    return {
+        [=] {
+            return schema(*v);
+        },
+        [&array, v] {
+            array.push_back(*v);
+        }
+    };
 }
 
 }

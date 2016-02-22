@@ -93,42 +93,57 @@ TEST_CASE("testing value converter")
 
 struct Nested
 {
-	string stringProp = "";
+    string stringProp = "";
+    std::vector<string> arrayProp;
 };
 struct TopLevel
 {
-	int intProp = 0;
-	bool boolProp = false;
-	Nested nestedProp;
+    int intProp = 0;
+    bool boolProp = false;
+    Nested nestedProp;
 };
 
-Schema NestedSchema(Nested & nested)
+Schema ArrayElementSchema(string & str)
 {
-	return Schema::object {
-	    { "stringProp", Schema(Schema::Type::STRING, PrimitiveConverter(nested.stringProp)) }
-	};
+    return Schema(Schema::Type::STRING, PrimitiveConverter(str));    
+}
+
+Schema NestedSchema(Nested & nested)
+{    
+    return Schema::object {
+        { "stringProp", Schema(Schema::Type::STRING, PrimitiveConverter(nested.stringProp)) },
+        { "arrayProp", ArraySchema<string>(nested.arrayProp, &ArrayElementSchema) }
+    };
 }
 
 Schema TopLevelSchema(TopLevel & topLevel)
 {
-	return Schema::object {
-		{ "intProp", Schema(Schema::Type::NUMBER, PrimitiveConverter(topLevel.intProp)) },
-		{ "boolProp", Schema(Schema::Type::BOOL, PrimitiveConverter(topLevel.boolProp)) },
-		{ "nestedProp", NestedSchema(topLevel.nestedProp) }
-	};
+    return Schema::object {
+        { "intProp", Schema(Schema::Type::NUMBER, PrimitiveConverter(topLevel.intProp)) },
+        { "boolProp", Schema(Schema::Type::BOOL, PrimitiveConverter(topLevel.boolProp)) },
+        { "nestedProp", NestedSchema(topLevel.nestedProp) }
+    };
 }
 
 TEST_CASE("can process simple schema")
 {	
-	Json json = Json::object {
-	    { "intProp", 5 },
-	    { "boolProp", true },
-	    { "nestedProp", Json::object {{ "stringProp", "str" }}}
-	};
+    Json json = Json::object {
+        { "intProp", 5 },
+        { "boolProp", true },
+        { "nestedProp", Json::object {
+            { "stringProp", "str" }, 
+            { "arrayProp", Json::array { "one", "two", "three" }}
+        }}
+    };
 
-	TopLevel topLevel;
-	TopLevelSchema(topLevel).from_json(json);
-	REQUIRE(topLevel.intProp == 5);
-	REQUIRE(topLevel.boolProp == true);
-	REQUIRE(topLevel.nestedProp.stringProp == "str");
+    TopLevel topLevel;
+    TopLevelSchema(topLevel).from_json(json);
+
+    REQUIRE(topLevel.intProp == 5);
+    REQUIRE(topLevel.boolProp == true);
+    REQUIRE(topLevel.nestedProp.stringProp == "str");
+    REQUIRE(topLevel.nestedProp.arrayProp.size() == 3);
+    REQUIRE(topLevel.nestedProp.arrayProp[0] == "one");
+    REQUIRE(topLevel.nestedProp.arrayProp[1] == "two");
+    REQUIRE(topLevel.nestedProp.arrayProp[2] == "three");
 }
