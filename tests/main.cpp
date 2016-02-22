@@ -68,44 +68,44 @@ TEST_CASE("testing value converter")
 	{
 		int intValue;
 		ValueConverter converter = PrimitiveConverter(intValue);
-		converter.FromJson(Json(5));
+		converter.from_json(Json(5));
 		REQUIRE(intValue == 5);
 	}
 	{
 		int intValue = 6;
 		Json json;
-		PrimitiveConverter(intValue).ToJson(json);
+		PrimitiveConverter(intValue).to_json(json);
 		REQUIRE(json.int_value() == 6);
 	}
 	{
 		bool boolValue = false;
 		ValueConverter converter = PrimitiveConverter(boolValue);
-		converter.FromJson(Json(true));
+		converter.from_json(Json(true));
 		REQUIRE(boolValue == true);
 	}
 	{
 		string stringValue;
 		ValueConverter converter = PrimitiveConverter(stringValue);
-		converter.FromJson(Json("string"));
+		converter.from_json(Json("string"));
 		REQUIRE(stringValue == "string");
 	}
 }
 
 struct Nested
 {
-	string stringProp;
+	string stringProp = "";
 };
 struct TopLevel
 {
-	int intProp;
-	bool boolProp;
+	int intProp = 0;
+	bool boolProp = false;
 	Nested nestedProp;
 };
 
 Schema NestedSchema(Nested & nested)
 {
 	return Schema::object {
-	    { "nestedStringProp", Schema(Schema::Type::STRING, PrimitiveConverter(nested.stringProp)) }
+	    { "stringProp", Schema(Schema::Type::STRING, PrimitiveConverter(nested.stringProp)) }
 	};
 }
 
@@ -123,9 +123,12 @@ TEST_CASE("can process simple schema")
 	Json json = Json::object {
 	    { "intProp", 5 },
 	    { "boolProp", true },
-	    { "nestedProp", Json::object {{ "nestedStringProp", "str" }}}
+	    { "nestedProp", Json::object {{ "stringProp", "str" }}}
 	};
 
-	// TopLevel topLevel;
-	// TopLevelSchema(topLevel).from_json(json);
+	TopLevel topLevel;
+	TopLevelSchema(topLevel).from_json(json);
+	REQUIRE(topLevel.intProp == 5);
+	REQUIRE(topLevel.boolProp == true);
+	REQUIRE(topLevel.nestedProp.stringProp == "str");
 }

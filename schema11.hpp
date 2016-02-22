@@ -17,8 +17,8 @@ class SchemaValue;
 
 struct ValueConverter
 {
-	std::function<void(const json11::Json &)> FromJson;
-	std::function<void(json11::Json &)> ToJson;
+	std::function<void(const json11::Json &)> from_json = [](const json11::Json &){};
+	std::function<void(json11::Json &)> to_json = [](json11::Json &){};
 };
 
 class Schema final {
@@ -35,8 +35,7 @@ public:
     // Constructors for the various types of JSON value.
     Schema() noexcept;                // NUL
     Schema(std::nullptr_t) noexcept;  // NUL
-	Schema(Type type);
-    Schema(Type type, ValueConverter valueConverter);
+    Schema(Type type, ValueConverter valueConverter=ValueConverter());
     // Schema(const array &values);      // ARRAY
     // Schema(array &&values);           // ARRAY
     Schema(const object &values);     // OBJECT
@@ -92,6 +91,9 @@ public:
     const Schema & operator[](size_t i) const;
     // Return a reference to obj[key] if this is an object, Schema() otherwise.
     const Schema & operator[](const std::string &key) const;
+	
+	void from_json(const json11::Json &json) const;
+	void to_json(json11::Json &json) const;
 
     // Serialize.
     void dump(std::string &out) const;
@@ -149,6 +151,8 @@ protected:
     virtual Schema::Type type() const = 0;
     virtual bool equals(const SchemaValue * other) const = 0;
     virtual bool less(const SchemaValue * other) const = 0;
+	virtual void from_json(const json11::Json &json) const = 0;
+	virtual void to_json(json11::Json &json) const = 0;
     virtual void dump(std::string &out) const = 0;
     // virtual double number_value() const;
     // virtual int int_value() const;
@@ -171,10 +175,10 @@ template <typename T>
 ValueConverter ObjectConverter(T & value, std::function<Schema(T &)> schema)
 {
 	return ValueConverter {
-		.FromJson = [&value, schema](const json11::Json & json) {
-
+		.from_json = [&value, schema](const json11::Json & json) {
+			
 		},
-		.ToJson = [&value, schema](json11::Json & json) {
+		.to_json = [&value, schema](json11::Json & json) {
 
 		}
 	};

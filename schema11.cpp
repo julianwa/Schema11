@@ -144,7 +144,7 @@ class Value : public SchemaValue {
 protected:
 
     // Constructors
-    explicit Value() {}
+    explicit Value(ValueConverter valueConverter) : m_valueConverter(valueConverter) {}
 
     // Get type tag
     Schema::Type type() const override {
@@ -161,30 +161,31 @@ protected:
         //return m_value < static_cast<const Value<tag, T> *>(other)->m_value;
     }
 
-    // const T m_value;
+    ValueConverter m_valueConverter;
+	void from_json(const Json &json) const override {
+		m_valueConverter.from_json(json);
+	}
+	
+	void to_json(Json &json) const override {
+		m_valueConverter.to_json(json);
+	}
+	
     void dump(string &out) const override { /*schema11::dump(m_value, out); */ }
 };
 
 class SchemaNumber final : public Value<Schema::NUMBER> {
-    // double number_value() const override { return m_value; }
-    // int int_value() const override { return static_cast<int>(m_value); }
-    // bool equals(const SchemaValue * other) const override { return m_value == other->number_value(); }
-    // bool less(const SchemaValue * other)   const override { return m_value <  other->number_value(); }
-// public:
-    // explicit SchemaDouble(double value) : Value() {}
+public:
+    explicit SchemaNumber(ValueConverter valueConverter) : Value(valueConverter) {}
 };
 
 class SchemaBoolean final : public Value<Schema::BOOL> {
-    // bool bool_value() const override { return m_value; }
-// public:
-    // explicit SchemaBoolean(bool value) : Value(value) {}
+public:
+    explicit SchemaBoolean(ValueConverter valueConverter) : Value(valueConverter) {}
 };
 
 class SchemaString final : public Value<Schema::STRING> {
-//     const string &string_value() const override { return m_value; }
-// public:
-//     explicit SchemaString(const string &value) : Value(value) {}
-//     explicit SchemaString(string &&value)      : Value(move(value)) {}
+public:
+    explicit SchemaString(ValueConverter valueConverter) : Value(valueConverter) {}
 };
 //
 // class SchemaArray final : public Value<Schema::ARRAY> {
@@ -199,15 +200,33 @@ class SchemaObject final : public Value<Schema::OBJECT> {
     const Schema::object &object_items() const override { return m_value; }
     const Schema & operator[](const string &key) const override;
 public:
-    explicit SchemaObject(const Schema::object &value) : Value(), m_value(value) {}
-    explicit SchemaObject(Schema::object &&value) : Value(), m_value(move(value)) {}
+    explicit SchemaObject(const Schema::object &value) : Value(ValueConverter()), m_value(value) {}
+    explicit SchemaObject(Schema::object &&value) : Value(ValueConverter()), m_value(move(value)) {}
+	
+	void from_json(const Json &json) const override {
+		for (auto & value : m_value) {
+			value.second.from_json(json[value.first]);
+		}
+	}
+	
+	void to_json(Json &json) const override {
+		// for (const auto & value : m_value) {
+		// 	value.second.to_json(json[value.first]);
+		// }
+	}
     
     Schema::object m_value;
 };
 
 class SchemaNull final : public Value<Schema::NUL> {
 public:
-    SchemaNull() : Value() {}
+    SchemaNull() : Value(ValueConverter()) {}
+
+	void from_json(const Json &json) const override {
+	}
+	
+	void to_json(Json &json) const override {
+	}
 };
 
 /* * * * * * * * * * * * * * * * * * * *
@@ -240,17 +259,17 @@ static const Schema & static_null() {
 
 Schema::Schema() noexcept                  : m_ptr(statics().null) {}
 Schema::Schema(std::nullptr_t) noexcept    : m_ptr(statics().null) {}
-Schema::Schema(Schema::Type type) {
+Schema::Schema(Schema::Type type, ValueConverter valueConverter) {
     switch (type) {
-        case Schema::Type::NUMBER: m_ptr = make_shared<SchemaNumber>(); break;
-        case Schema::Type::BOOL: m_ptr = make_shared<SchemaBoolean>(); break;
-        case Schema::Type::STRING: m_ptr = make_shared<SchemaString>(); break;
+        case Schema::Type::NUMBER: m_ptr = make_shared<SchemaNumber>(valueConverter); break;
+        case Schema::Type::BOOL: m_ptr = make_shared<SchemaBoolean>(valueConverter); break;
+        case Schema::Type::STRING: m_ptr = make_shared<SchemaString>(valueConverter); break;
         default:
             assert(0);
     }
 }
-Schema::Schema(Schema::Type type, ValueConverter converter) : Schema(type) {
-}
+// Schema::Schema(Schema::Type type, ValueConverter converter) : Schema(type) {
+// }
 // Schema::Schema(const Schema::array &values)  : m_ptr(make_shared<SchemaArray>(values)) {}
 // Schema::Schema(Schema::array &&values)       : m_ptr(make_shared<SchemaArray>(move(values))) {}
 Schema::Schema(const Schema::object &values) : m_ptr(make_shared<SchemaObject>(values)) {}
@@ -304,6 +323,16 @@ bool Schema::operator< (const Schema &other) const {
         return m_ptr->type() < other.m_ptr->type();
 
     return m_ptr->less(other.m_ptr.get());
+}
+
+void Schema::from_json(const json11::Json &json) const
+{
+	m_ptr->from_json(json);
+}
+
+void Schema::to_json(json11::Json &json) const
+{
+	m_ptr->to_json(json);
 }
 
 /* * * * * * * * * * * * * * * * * * * *
@@ -772,10 +801,10 @@ template <typename T>
 ValueConverter PrimitiveConverter(T & value, std::function<T(const json11::Json &)> fromJson)
 {
 	return ValueConverter {
-		.FromJson = [&value, fromJson](const Json & json) {
+		.from_json = [&value, fromJson](const Json & json) {
 			value = fromJson(json);
 		},
-		.ToJson = [&value](Json &json) {
+		.to_json = [&value](Json &json) {
 			json = Json(value);
 		}
 	};
