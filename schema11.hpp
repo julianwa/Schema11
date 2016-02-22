@@ -35,9 +35,12 @@ public:
     // Constructors for the various types of JSON value.
     Schema() noexcept;                // NUL
     Schema(std::nullptr_t) noexcept;  // NUL
-    Schema(Type type, ValueConverter valueConverter=ValueConverter());
+    Schema(int &value);
+    Schema(float &value);
+    Schema(double &value);
+    Schema(bool &value);
+    Schema(std::string &value);
     Schema(const array &values);      // ARRAY
-    // Schema(array &&values);           // ARRAY
     Schema(const object &values);     // OBJECT
     Schema(object &&values);          // OBJECT
 

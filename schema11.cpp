@@ -270,17 +270,12 @@ static const Schema & static_null() {
 
 Schema::Schema() noexcept                  : m_ptr(statics().null) {}
 Schema::Schema(std::nullptr_t) noexcept    : m_ptr(statics().null) {}
-Schema::Schema(Schema::Type type, ValueConverter valueConverter) {
-    switch (type) {
-        case Schema::Type::NUMBER: m_ptr = make_shared<SchemaNumber>(valueConverter); break;
-        case Schema::Type::BOOL: m_ptr = make_shared<SchemaBoolean>(valueConverter); break;
-        case Schema::Type::STRING: m_ptr = make_shared<SchemaString>(valueConverter); break;
-        default:
-            assert(0);
-    }
-}
+Schema::Schema(int &value) : m_ptr(make_shared<SchemaNumber>(PrimitiveConverter(value))) {}
+Schema::Schema(float &value) : m_ptr(make_shared<SchemaNumber>(PrimitiveConverter(value))) {}
+Schema::Schema(double &value) : m_ptr(make_shared<SchemaNumber>(PrimitiveConverter(value))) {}
+Schema::Schema(bool &value) : m_ptr(make_shared<SchemaBoolean>(PrimitiveConverter(value))) {}
+Schema::Schema(std::string &value) : m_ptr(make_shared<SchemaString>(PrimitiveConverter(value))) {}
 Schema::Schema(const Schema::array &desc)  : m_ptr(make_shared<SchemaArray>(desc)) {}
-// Schema::Schema(Schema::array &&desc)       : m_ptr(make_shared<SchemaArray>(move(desc))) {}
 Schema::Schema(const Schema::object &values) : m_ptr(make_shared<SchemaObject>(values)) {}
 Schema::Schema(Schema::object &&values)      : m_ptr(make_shared<SchemaObject>(move(values))) {}
 

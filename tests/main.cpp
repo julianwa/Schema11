@@ -9,33 +9,37 @@ using namespace json11;
 using namespace schema11;
 using namespace std;
 
-TEST_CASE("json11 can parse JSON strings") 
+TEST_CASE("json11 can parse JSON strings")
 {
-	const string jsonStr = R"({
-		"number": 5,
-		"string": "string"
-	})";
+    const string jsonStr = R"({
+        "number": 5,
+        "string": "string"
+    })";
 
-	string err;
-	const auto json = Json::parse(jsonStr, err);
+    string err;
+    const auto json = Json::parse(jsonStr, err);
 
-	REQUIRE(err.empty());
-	REQUIRE(json["number"].is_number());
-	REQUIRE(json["string"].is_string());
+    REQUIRE(err.empty());
+    REQUIRE(json["number"].is_number());
+    REQUIRE(json["string"].is_string());
 }
 
-TEST_CASE("can create an empty schema") 
+TEST_CASE("can create an empty schema")
 {
     Schema schema;
 }
 
 TEST_CASE("can create a flat schema")
 {
+    int intProp;
+    bool boolProp;
+    string stringProp;
+    
     Schema schema = Schema::object {
         { "nullProp", Schema(nullptr) },
-        { "intProp", Schema(Schema::Type::NUMBER) },
-        { "boolProp", Schema(Schema::Type::BOOL) },
-        { "stringProp", Schema(Schema::Type::STRING) }
+        { "intProp", Schema(intProp) },
+        { "boolProp", Schema(boolProp) },
+        { "stringProp", Schema(stringProp) }
     };
     REQUIRE(schema.is_object());
     REQUIRE(schema["noSuchProp"].is_null());
@@ -47,13 +51,16 @@ TEST_CASE("can create a flat schema")
 
 TEST_CASE("can create a nested schema")
 {
+    int intProp;
+    bool boolProp;
+    
     Schema subSchema = Schema::object {
-        { "nestedIntProp", Schema(Schema::Type::NUMBER) },
-        { "nestedBoolProp", Schema(Schema::Type::BOOL) }
+        { "nestedIntProp", Schema(intProp) },
+        { "nestedBoolProp", Schema(boolProp) }
     };
 
     Schema schema = Schema::object {
-        { "intProp", Schema(Schema::Type::NUMBER) },
+        { "intProp", Schema(intProp) },
         { "nestedProps", subSchema }
     };
     REQUIRE(schema.is_object());
@@ -105,13 +112,13 @@ struct TopLevel
 
 Schema ArrayElementSchema(string & str)
 {
-    return Schema(Schema::Type::STRING, PrimitiveConverter(str));    
+    return Schema(str);    
 }
 
 Schema NestedSchema(Nested & nested)
 {    
     return Schema::object {
-        { "stringProp", Schema(Schema::Type::STRING, PrimitiveConverter(nested.stringProp)) },
+        { "stringProp", Schema(nested.stringProp) },
         { "arrayProp", ArraySchema<string>(nested.arrayProp, &ArrayElementSchema) }
     };
 }
@@ -119,8 +126,8 @@ Schema NestedSchema(Nested & nested)
 Schema TopLevelSchema(TopLevel & topLevel)
 {
     return Schema::object {
-        { "intProp", Schema(Schema::Type::NUMBER, PrimitiveConverter(topLevel.intProp)) },
-        { "boolProp", Schema(Schema::Type::BOOL, PrimitiveConverter(topLevel.boolProp)) },
+        { "intProp", Schema(topLevel.intProp) },
+        { "boolProp", Schema(topLevel.boolProp) },
         { "nestedProp", NestedSchema(topLevel.nestedProp) }
     };
 }
