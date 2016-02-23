@@ -4,23 +4,17 @@
 #include "../third_party/catch/single_include/catch.hpp"
 #include "../third_party/json11/json11.hpp"
 #include "../schema11.hpp"
+#include "action/ActionReceiver.h"
+#include "action/ActionReceiverImpl.hpp"
 
+using namespace fiftythree::core;
 using namespace json11;
 using namespace schema11;
 using namespace std;
 
 //
-// Pretty, consumable types
+// Actions
 //
-
-class Action
-{
-protected:
-    string _ModelId;
-public:
-    virtual ~Action() {}
-    string ModelId() { return _ModelId; }
-};
 
 class BoardMoveCardAction : public Action
 {
@@ -46,7 +40,7 @@ public:
 };
 
 //
-// Schemas
+// Action Schemas
 //
 
 Schema BindBoardMoveCardActionSchema(BoardMoveCardAction &action)
@@ -92,6 +86,33 @@ public:
         return _Entries[typeName]();
     }
 };
+
+//
+// Models
+// 
+
+class Board : public ActionReceiverT<Board>
+{
+public:
+    // The Actions that are supported by this class.
+    using Actions = std::tuple<BoardMoveCardAction, BoardSetTitleAction>;
+    virtual ~Board() {}
+};
+
+class BoardImpl : public Board
+{
+public:
+    void Execute(const shared_ptr<BoardSetTitleAction> &action)
+    {
+        printf("%s title:\"%s\"\n", "boardSetTitle", action->Title().c_str());
+    }
+    
+    void Execute(const shared_ptr<BoardMoveCardAction> &action)
+    {
+        printf("%s fromIndex:%d toIndex:%d\n", "boardMoveCard", action->FromIndex(), action->ToIndex());
+    }
+};
+ACTION_RECEIVER_DYNAMIC_IMPL(Board);
 
 //
 // Test Cases
@@ -151,4 +172,12 @@ TEST_CASE("can parse an array of distinct actions")
     REQUIRE(action1 != nullptr);
     REQUIRE(action1->ModelId() == "7798712398");
     REQUIRE(action1->Title() == "Crazy title!");
+    
+    // In a real system, you would dispatch each Action to the Model with the
+    // corresponding ModelId. In this example, just blindly direct all Actions
+    // to a single Model.
+    auto board = make_shared<Board>();
+    for (auto action : actions) {
+        board->Execute(action);
+    }
 }
